@@ -12,3 +12,7 @@ __pycache__/
 
 # Ignore pipenv generated files
 Pipfile.lock
+
+#ignore buid
+*.egg-info
+dist

@@ -4,9 +4,10 @@ on:
   push:
     tags:
       - "v*"
-      
+
 jobs:
   build-n-publish:
+    permissions: write-all
     name: Build and publish to PyPI
     runs-on: ubuntu-latest
 
