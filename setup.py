@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='netrohomeapi',
     packages=['netrohomeapi'],
-    version='0.1.1',
+    version='0.1.2',
     license='MIT',
     description='Python wrapper for NetroHome API',
     long_description=open('README.md', 'r').read(),
@@ -11,7 +11,7 @@ setup(
     author='George Bark',
     author_email='georgebark2000@gmail.com',
     url='https://github.com/GeorgeBark/netrohomeapi',
-    download_url='https://github.com/GeorgeBark/netrohomeapi/archive/refs/tags/v0.1.1.tar.gz',
+    download_url='https://github.com/GeorgeBark/netrohomeapi/archive/refs/tags/v0.1.2.tar.gz',
     install_requires=[
         'aiohttp',
         'pydantic'
