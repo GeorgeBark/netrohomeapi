@@ -1,0 +1,14 @@
+# Ignore Python artifacts
+*.pyc
+*.pyo
+__pycache__/
+
+#ignore jupyter notebook files
+*.ipynb
+
+# Ignore Pipenv virtual environment
+/.venv/
+/.venv3/
+
+# Ignore pipenv generated files
+Pipfile.lock
