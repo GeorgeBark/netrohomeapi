@@ -6,6 +6,8 @@ setup(
     version='0.1.1',
     license='MIT',
     description='Python wrapper for NetroHome API',
+    long_description=open('README.md', 'r').read(),
+    long_description_content_type='text/markdown',
     author='George Bark',
     author_email='georgebark2000@gmail.com',
     url='https://github.com/GeorgeBark/netrohomeapi',

@@ -9,6 +9,8 @@ pydantic = "==1.10.7"
 
 [dev-packages]
 ipykernel = "*"
+twine = "*"
+build = "*"
 
 [requires]
 python_version = "3.8"
