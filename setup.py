@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='netrohomeapi',
     packages=['netrohomeapi'],
-    version='0.2.0',
+    version='0.2.1',
     license='MIT',
     description='Python wrapper for NetroHome API',
     long_description=open('README.md', 'r').read(),
