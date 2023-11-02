@@ -1,18 +1,23 @@
-from enum import Enum
+from enum import StrEnum, IntEnum
 import datetime
-from typing import List, Optional
+from tkinter import W
+from typing import Generic, Optional, TypeVar, TypedDict, NotRequired
 
 from pydantic import BaseModel, validator
+
+dataR = TypeVar("dataR", bound=TypedDict)
+dataP = TypeVar("dataP", bound=BaseModel)
 
 def make_tz_aware(v):
     tz_aware =  datetime.datetime.fromisoformat(v + "+00:00")
     return tz_aware
 
-class ResponseStatus(Enum):
+class ResponseStatus(StrEnum):
     OK = "OK"
     ERROR = "ERROR" 
 
-class ErrorCode(Enum):
+
+class ErrorCode(IntEnum):
     INVALID_KEY = 1
     UNKNOWN = 2
     LIMIT_EXCEEDED = 3
@@ -20,7 +25,7 @@ class ErrorCode(Enum):
     INTERNAL_ERROR = 5
     PARAMETER_ERROR = 6
 
-class DeviceStatus(Enum):
+class DeviceStatus(StrEnum):
     STANDBY = "STANDBY"
     SETUP = "SETUP"
     ONLINE = "ONLINE"
@@ -29,32 +34,46 @@ class DeviceStatus(Enum):
     SLEEPING = "SLEEPING"
     POWEROFF = "POWEROFF"
 
-class DeviceSetStatus(Enum):
+class DeviceSetStatus(IntEnum):
     STANDBY = 0
     ONLINE = 1
 
-class ZoneSmart(Enum):
+class ZoneSmart(StrEnum):
     SMART = "SMART"
     ASSISTANT = "ASSISTANT"
     TIMER = "TIMER"
 
-
-class ScheduleSource(Enum):
+class ScheduleSource(StrEnum):
     MANUAL = "MANUAL"
     SMART = "SMART"
 
-
-class ScheduleStatus(Enum):
+class ScheduleStatus(StrEnum):
     EXECUTED = "EXECUTED"
     EXECUTING = "EXECUTING"
     VALID = "VALID"
     
-class EventType(Enum):
+class EventType(IntEnum):
     DEVICE_OFFLINE = 1
     DEVICE_ONLINE = 2
     SCHEDULE_START =3
     SCHEDULE_END = 4
 
+class WeatherConditions(IntEnum):
+    CLEAR = 0 
+    CLOUDY = 1 
+    RAIN = 2 
+    SNOW = 3 
+    WIND = 4 
+
+
+class MetaRaw(TypedDict):
+    last_active: str
+    tid: str
+    time: str
+    token_limit: int
+    token_remaining: int
+    token_reset: str
+    version: str
     
 class Meta(BaseModel):
     last_active: datetime.datetime
@@ -67,27 +86,56 @@ class Meta(BaseModel):
     
     _make_tz_aware = validator("last_active", "time", "token_reset", pre=True, allow_reuse=True)(make_tz_aware)
 
+class BaseResponseRaw(TypedDict):
+    status: ResponseStatus
+    meta: MetaRaw
 
 class BaseResponse(BaseModel):
     status: ResponseStatus
     meta: Meta
-    
-class SuccessResponse(BaseResponse):
-    data: Optional[dict]
+
+class SuccessResponseRaw(BaseResponseRaw, Generic[dataR]):
+    data: dataR    
+
+class SuccessResponse(BaseResponse, Generic[dataP]):
+    data: dataP
+
+class ErrorDataRaw(TypedDict):
+    code: ErrorCode
+    message: str
 
 class ErrorData(BaseModel):
     code: ErrorCode
     message: str
+
+class ErrorResponseRaw(BaseResponseRaw):
+    errors: list[ErrorDataRaw]
     
 class ErrorResponse(BaseResponse):
-    errors: List[ErrorData]
-    
+    errors: list[ErrorData]
+
+class ZoneRaw(TypedDict):
+    enabled: bool
+    ith: int
+    name: str
+    smart: ZoneSmart
+
 class Zone(BaseModel):
     enabled: bool
     ith: int
     name: str
     smart: ZoneSmart
 
+class DeviceRaw(TypedDict):
+    last_active: str
+    name: str
+    serial: str
+    status: DeviceStatus
+    sw_version: str
+    version: str
+    zone_num: int
+    zones: list[ZoneRaw]
+    battery_level: NotRequired[float]
 
 class Device(BaseModel):
     last_active: datetime.datetime
@@ -97,23 +145,34 @@ class Device(BaseModel):
     sw_version: str
     version: str
     zone_num: int
-    zones: List[Zone]
+    zones: list[Zone]
+    batter_level: Optional[float]
     
     _make_tz_aware = validator("last_active", pre=True, allow_reuse=True)(make_tz_aware)
     
     def get_zones (self, only_active: bool = False):
         return [z for z in self.zones if z.enabled or not only_active]
 
-
+class InfoDataRaw(TypedDict):
+    device: DeviceRaw
 
 class InfoData(BaseModel):
     device: Device
 
+InfoEndpointResponseRaw = SuccessResponseRaw[InfoDataRaw]
 
-class InfoEndpointResponse(SuccessResponse):
-    data: InfoData
-    
-    
+InfoEndpointResponse = SuccessResponse[InfoData]
+
+class ScheduleRaw(TypedDict):
+    end_time: str
+    id: int
+    local_date: str
+    local_end_time: str
+    local_start_time: str
+    source: ScheduleSource
+    start_time: str
+    status: ScheduleStatus
+    zone: int    
 
 class Schedule(BaseModel):
     end_time: datetime.datetime
@@ -133,18 +192,24 @@ class Schedule(BaseModel):
     def calc_duration(cls, v, values):
         return values["end_time"] - values["start_time"]
 
-
+class ScheduleDataRaw(TypedDict):
+    schedules: list[ScheduleRaw]
 
 class ScheduleData(BaseModel):
-    schedules: List[Schedule]
+    schedules: list[Schedule]
     
     def get_schedules_for_zone (self, zone: int):
         return [s for s in self.schedules if s.zone == zone]
 
+ScheduleEndpointResponseRaw = SuccessResponseRaw[ScheduleDataRaw]
 
-class SchedulesEndpointResponse(SuccessResponse):
-    data: ScheduleData
+SchedulesEndpointResponse = SuccessResponse[ScheduleData]
     
+class MoistureRaw(TypedDict):
+    date: str
+    id: int
+    moisture: int
+    zone: int
 
 class Moisture(BaseModel):
     date: datetime.date
@@ -152,17 +217,24 @@ class Moisture(BaseModel):
     moisture: int
     zone: int
         
+class MoistureDataRaw(TypedDict):
+    moistures: list[MoistureRaw]
 
 class MoistureData(BaseModel):
-    moistures: List[Moisture]
+    moistures: list[Moisture]
         
     def get_moistures_for_zone (self, zone: int):
         return [m for m in self.moistures if m.zone == zone]
 
+MoisturesEndpointResponseRaw = SuccessResponseRaw[MoistureDataRaw]
 
-class MoisturesEndpointResponse(SuccessResponse):
-    data: MoistureData
+MoisturesEndpointResponse = SuccessResponse[MoistureData]
         
+class EventRaw(TypedDict):
+    event: EventType
+    id: int
+    message: str
+    time: str
 
 class Event(BaseModel):
     event: EventType
@@ -172,13 +244,46 @@ class Event(BaseModel):
     
     _make_tz_aware = validator("time", pre=True, allow_reuse=True)(make_tz_aware)
 
-
+class EventDataRaw(TypedDict):
+    events: list[EventRaw]
 
 class EventData(BaseModel):
-    events: List[Event]
+    events: list[Event]
 
+EventsEndpointResponseRaw = SuccessResponseRaw[EventDataRaw]
 
-class EventsEndpointResponse(SuccessResponse):
-    data: EventData
+EventsEndpointResponse = SuccessResponse[EventData]
+
+class SensorRaw(TypedDict):
+    id: int
+    time: str
+    local_date: str
+    local_time: str
+    moisture: int
+    sunlight: float
+    celsius: float
+    fahrenheit: float
+    battery_level: int
+
+class Sensor(BaseModel):
+    id: int
+    time: datetime.datetime
+    local_date: datetime.date
+    local_time: datetime.time
+    moisture: int
+    sunlight: float
+    celsius: float
+    fahrenheit: float
+    battery_level: int
     
+    _make_tz_aware = validator("time", pre=True, allow_reuse=True)(make_tz_aware)
 
+class SensorDataRaw(TypedDict):
+    sensor_data: list[SensorRaw]
+
+class SensorData(BaseModel):
+    sensor_data: list[Sensor]
+
+SensorsEndpointResponseRaw = SuccessResponseRaw[SensorDataRaw]
+
+SensorsEndpointResponse = SuccessResponse[SensorData]
