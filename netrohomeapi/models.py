@@ -1,6 +1,5 @@
 from enum import StrEnum, IntEnum
 import datetime
-from tkinter import W
 from typing import Generic, Optional, TypeVar, TypedDict, NotRequired
 
 from pydantic import BaseModel, validator
